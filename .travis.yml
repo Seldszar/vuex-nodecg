@@ -1,0 +1,19 @@
+language: node_js
+
+node_js:
+  - 10
+  - 12
+
+notifications:
+  email: false
+
+branches:
+  only:
+    - master
+  except:
+    - /^v\d+\.\d+\.\d+$/
+
+jobs:
+  include:
+    - stage: deploy
+      script: npm run release
