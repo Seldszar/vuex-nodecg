@@ -5,4 +5,10 @@ import { Plugin } from "vuex";
 
 import VuexNodeCG = require(".");
 
-expectType<Promise<Plugin<any>>>(VuexNodeCG({ replicants: {} }))
+const plugin = VuexNodeCG({
+  replicants: {},
+});
+
+expectType<Plugin<any>>(plugin);
+expectType<Promise<Plugin<any>>>(plugin);
+expectType<VuexNodeCG.Plugin<any>>(plugin);

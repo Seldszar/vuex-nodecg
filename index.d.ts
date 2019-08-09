@@ -1,4 +1,4 @@
-import { Plugin } from "vuex";
+import * as Vuex from "vuex";
 
 declare namespace VuexNodeCG {
   interface ReplicantOptions {
@@ -11,8 +11,10 @@ declare namespace VuexNodeCG {
     moduleName?: string;
     replicants: Record<string, ReplicantOptions>;
   }
+
+  type Plugin<S> = Vuex.Plugin<S> & Promise<Vuex.Plugin<S>>;
 }
 
-declare function VuexNodeCG<T>(options: VuexNodeCG.Options): Promise<Plugin<T>>;
+declare function VuexNodeCG<S = any>(options: VuexNodeCG.Options): VuexNodeCG.Plugin<S>;
 
 export = VuexNodeCG;

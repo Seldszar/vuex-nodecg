@@ -2,7 +2,18 @@
 
 const rfdc = require("rfdc");
 
-module.exports = async options => {
+const mergePromise = (original, promise) => {
+  original.then = promise.then.bind(promise);
+  original.catch = promise.catch.bind(promise);
+
+  if (Promise.prototype.finally) {
+    original.finally = promise.finally.bind(promise);
+  }
+
+  return original;
+};
+
+module.exports = options => {
   const moduleName = options.moduleName || "replicants";
   const clone = rfdc();
 
@@ -11,30 +22,11 @@ module.exports = async options => {
 
   for (const [replicantName, replicantOptions] of Object.entries(options.replicants)) {
     managedReplicants.set(replicantName, nodecg.Replicant(replicantName, replicantOptions));
+    initialState[replicantName] = replicantOptions.defaultValue;
   }
 
-  await NodeCG.waitForReplicants(...managedReplicants.values());
-
-  return store => {
-    let isReady = false;
-
-    managedReplicants.forEach(replicant => {
-      replicant.on("change", newValue => {
-        const rawValue = clone(newValue);
-
-        if (isReady) {
-          store.commit(`${moduleName}/REPLICANT_CHANGED`, {
-            name: replicant.name,
-            value: rawValue,
-          });
-
-          return;
-        }
-
-        initialState[replicant.name] = rawValue;
-      });
-    });
-
+  const waitForReplicants = NodeCG.waitForReplicants(...managedReplicants.values());
+  const install = store => {
     store.registerModule(moduleName, {
       state: initialState,
       namespaced: true,
@@ -56,6 +48,18 @@ module.exports = async options => {
       },
     });
 
-    isReady = true;
+    managedReplicants.forEach(replicant => {
+      replicant.on("change", newValue => {
+        store.commit(`${moduleName}/REPLICANT_CHANGED`, {
+          name: replicant.name,
+          value: clone(newValue),
+        });
+      });
+    });
   };
+
+  return mergePromise(
+    store => install(store),
+    waitForReplicants.then(() => install),
+  );
 };
